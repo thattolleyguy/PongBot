@@ -1,4 +1,1 @@
-PongBot
-=======
-
-Code related to PongBot
+SumoBot
