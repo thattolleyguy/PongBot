@@ -43,6 +43,8 @@ public class App extends javax.swing.JFrame implements KeyListener {
     private void initComponents() {
         java.awt.GridBagConstraints gridBagConstraints;
 
+        jSpinner2 = new javax.swing.JSpinner();
+        jSpinner3 = new javax.swing.JSpinner();
         jPanel1 = new javax.swing.JPanel();
         hueMinLabel = new javax.swing.JLabel();
         hueMinSlider = new javax.swing.JSlider();
@@ -57,6 +59,14 @@ public class App extends javax.swing.JFrame implements KeyListener {
         valueMaxLabel = new javax.swing.JLabel();
         valueMaxSlider = new javax.swing.JSlider();
         jButton1 = new javax.swing.JButton();
+        jLabel1 = new javax.swing.JLabel();
+        maxObjectSpinner = new javax.swing.JSpinner();
+        jLabel2 = new javax.swing.JLabel();
+        objectSizeSpinner = new javax.swing.JSpinner();
+        jLabel3 = new javax.swing.JLabel();
+        jLabel4 = new javax.swing.JLabel();
+        erodeSizeSpinner = new javax.swing.JSpinner();
+        dilateSizeSpinner = new javax.swing.JSpinner();
         jPanel3 = new javax.swing.JPanel();
         jPanel2 = new javax.swing.JPanel();
         dataField = new java.awt.TextField();
@@ -179,6 +189,67 @@ public class App extends javax.swing.JFrame implements KeyListener {
         });
         jPanel1.add(jButton1, new java.awt.GridBagConstraints());
 
+        jLabel1.setText("Max Objects");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 2;
+        gridBagConstraints.gridy = 1;
+        jPanel1.add(jLabel1, gridBagConstraints);
+
+        maxObjectSpinner.setValue(3);
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 3;
+        gridBagConstraints.gridy = 1;
+        jPanel1.add(maxObjectSpinner, gridBagConstraints);
+
+        jLabel2.setText("Object Size");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 2;
+        gridBagConstraints.gridy = 2;
+        jPanel1.add(jLabel2, gridBagConstraints);
+
+        objectSizeSpinner.setValue(20);
+        objectSizeSpinner.addChangeListener(new javax.swing.event.ChangeListener() {
+            public void stateChanged(javax.swing.event.ChangeEvent evt) {
+                objectSizeSpinnerStateChanged(evt);
+            }
+        });
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 3;
+        gridBagConstraints.gridy = 2;
+        jPanel1.add(objectSizeSpinner, gridBagConstraints);
+
+        jLabel3.setText("Erode Size");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 2;
+        gridBagConstraints.gridy = 3;
+        jPanel1.add(jLabel3, gridBagConstraints);
+
+        jLabel4.setText("Dilate Size");
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 2;
+        gridBagConstraints.gridy = 4;
+        jPanel1.add(jLabel4, gridBagConstraints);
+
+        erodeSizeSpinner.addChangeListener(new javax.swing.event.ChangeListener() {
+            public void stateChanged(javax.swing.event.ChangeEvent evt) {
+                erodeSizeSpinnerStateChanged(evt);
+            }
+        });
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 3;
+        gridBagConstraints.gridy = 3;
+        jPanel1.add(erodeSizeSpinner, gridBagConstraints);
+
+        dilateSizeSpinner.addChangeListener(new javax.swing.event.ChangeListener() {
+            public void stateChanged(javax.swing.event.ChangeEvent evt) {
+                dilateSizeSpinnerStateChanged(evt);
+            }
+        });
+        gridBagConstraints = new java.awt.GridBagConstraints();
+        gridBagConstraints.gridx = 3;
+        gridBagConstraints.gridy = 4;
+        jPanel1.add(dilateSizeSpinner, gridBagConstraints);
+
         getContentPane().add(jPanel1, java.awt.BorderLayout.CENTER);
 
         jPanel3.setLayout(new java.awt.GridBagLayout());
@@ -281,6 +352,24 @@ public class App extends javax.swing.JFrame implements KeyListener {
         worker.execute();
     }//GEN-LAST:event_jButton1ActionPerformed
 
+    private void objectSizeSpinnerStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_objectSizeSpinnerStateChanged
+        worker.setObjectSize((Integer) objectSizeSpinner.getValue());
+    }//GEN-LAST:event_objectSizeSpinnerStateChanged
+
+    private void erodeSizeSpinnerStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_erodeSizeSpinnerStateChanged
+        if ((Integer) erodeSizeSpinner.getValue() <= 0) {
+            erodeSizeSpinner.setValue(1);
+        }
+        worker.setErodeSize((Integer) erodeSizeSpinner.getValue());
+    }//GEN-LAST:event_erodeSizeSpinnerStateChanged
+
+    private void dilateSizeSpinnerStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_dilateSizeSpinnerStateChanged
+        if ((Integer) dilateSizeSpinner.getValue() <= 0) {
+            dilateSizeSpinner.setValue(1);
+        }
+        worker.setDilateSize((Integer) dilateSizeSpinner.getValue());
+    }//GEN-LAST:event_dilateSizeSpinnerStateChanged
+
     /**
      * @param args the command line arguments
      */
@@ -325,15 +414,25 @@ public class App extends javax.swing.JFrame implements KeyListener {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton connectButton;
     private java.awt.TextField dataField;
+    private javax.swing.JSpinner dilateSizeSpinner;
+    private javax.swing.JSpinner erodeSizeSpinner;
     private javax.swing.JLabel hueMaxLabel;
     private javax.swing.JSlider hueMaxSlider;
     private javax.swing.JLabel hueMinLabel;
     private javax.swing.JSlider hueMinSlider;
     private javax.swing.JButton jButton1;
+    private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel jLabel2;
+    private javax.swing.JLabel jLabel3;
+    private javax.swing.JLabel jLabel4;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
     private javax.swing.JPanel jPanel4;
+    private javax.swing.JSpinner jSpinner2;
+    private javax.swing.JSpinner jSpinner3;
+    private javax.swing.JSpinner maxObjectSpinner;
+    private javax.swing.JSpinner objectSizeSpinner;
     private javax.swing.JLabel saturationMaxLabel;
     private javax.swing.JSlider saturationMaxSlider;
     private javax.swing.JLabel saturationMinLabel;

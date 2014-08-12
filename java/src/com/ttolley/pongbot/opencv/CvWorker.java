@@ -15,10 +15,12 @@ import javax.swing.SwingWorker;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
+import org.opencv.core.Point;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.highgui.VideoCapture;
 import org.opencv.imgproc.Imgproc;
+import org.opencv.imgproc.Moments;
 
 class Panel extends JPanel {
 
@@ -95,10 +97,22 @@ public class CvWorker extends SwingWorker<Void, Object> {
 
     Scalar hsv_min = new Scalar(0, 50, 50, 0);
     Scalar hsv_max = new Scalar(6, 255, 255, 0);
+    int objectSize = 20;
+    int maxObjects = 2;
+    int erodeSize = 4;
+    int dilateSize = 5;
 
     public void updateFilter(int hMin, int hMax, int sMin, int sMax, int vMin, int vMax) {
         hsv_min = new Scalar(hMin, sMin, vMin, 0);
         hsv_max = new Scalar(hMax, sMax, vMax, 0);
+    }
+
+    public void setObjectSize(int size) {
+        this.objectSize = size;
+    }
+
+    public void maxObjects(int objects) {
+        this.maxObjects = objects;
     }
 
     public void main() {
@@ -120,7 +134,7 @@ public class CvWorker extends SwingWorker<Void, Object> {
         Panel panel2 = new Panel();
         frame2.setContentPane(panel2);
         frame2.setVisible(true);
-        JFrame frame3 = new JFrame("S,V Distance");
+        JFrame frame3 = new JFrame("Threshold");
         frame3.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame3.setSize(640, 480);
         frame3.setBounds(600, 200, frame3.getWidth() + 600, 200 + frame3.getHeight());
@@ -145,23 +159,41 @@ public class CvWorker extends SwingWorker<Void, Object> {
                     Imgproc.cvtColor(webcam_image, hsv_image, Imgproc.COLOR_BGR2HSV);
                     Core.inRange(hsv_image, hsv_min, hsv_max, thresholded);
                     // Morph open
-                    Imgproc.erode(thresholded, thresholded, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(4, 4)));
-                    Imgproc.dilate(thresholded, thresholded, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(4, 4)));
+                    final Size erodeSizeObj = new Size(erodeSize, erodeSize);
+                    final Size dilateSizeObj = new Size(dilateSize, dilateSize);
+                    Imgproc.erode(thresholded, thresholded, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, erodeSizeObj));
+                    Imgproc.dilate(thresholded, thresholded, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, dilateSizeObj));
                     // Morph close
-                    Imgproc.dilate(thresholded, thresholded, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(4, 4)));
-                    Imgproc.erode(thresholded, thresholded, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(4, 4)));
-                    
-                    
+                    Imgproc.dilate(thresholded, thresholded, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, erodeSizeObj));
+                    Imgproc.erode(thresholded, thresholded, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, dilateSizeObj));
+
                     Mat temp = new Mat();
+                    thresholded.copyTo(temp);
                     List<MatOfPoint> contours = new ArrayList();
                     Mat heirarchy = new Mat();
                     Imgproc.findContours(temp, contours, heirarchy, Imgproc.RETR_CCOMP, Imgproc.CHAIN_APPROX_SIMPLE);
                     double refArea = 0;
-//                    if(!heirarchy.empty())
-//                    {
-//                        heirarchy.
-//                    }
-                    
+                    boolean objectFound = false;
+                    List<Target> targets = new ArrayList<>();
+
+                    for (MatOfPoint matOfPoint : contours) {
+                        targets.clear();
+                        Moments moment = Imgproc.moments(matOfPoint);
+                        double area = moment.get_m00();
+
+                        if (area > objectSize * objectSize) {
+                            // Found object, do something about it
+                            Target t = new Target(moment.get_m10() / area, moment.get_m01() / area);
+                            targets.add(t);
+                            objectFound = true;
+                        }
+                    }
+                    if (objectFound) {
+                        for (Target target : targets) {
+                            Core.circle(webcam_image, new Point(target.x, target.y), 10, new Scalar(0, 0, 255));
+                            Core.putText(webcam_image, "[" + target.x + " " + target.y + "]", new Point(target.x - 40, target.y + 25), 1, 1, new Scalar(0, 0, 255));
+                        }
+                    }
                     panel1.setimagewithMat(webcam_image);
                     panel2.setimagewithMat(hsv_image);
                     panel3.setimagewithMat(thresholded);
@@ -181,6 +213,26 @@ public class CvWorker extends SwingWorker<Void, Object> {
     protected Void doInBackground() throws Exception {
         main();
         return null;
+    }
+
+    public void setErodeSize(Integer erodeSize) {
+        this.erodeSize = erodeSize;
+    }
+
+    public void setDilateSize(Integer dilateSize) {
+        this.dilateSize = dilateSize;
+    }
+
+}
+
+class Target {
+
+    public final double x;
+    public final double y;
+
+    public Target(double x, double y) {
+        this.x = x;
+        this.y = y;
     }
 
 }
