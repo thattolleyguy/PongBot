@@ -5,11 +5,24 @@
  */
 package com.ttolley.pongbot.controller;
 
+import com.ttolley.pongbot.opencv.CameraEventHandler;
 import com.ttolley.pongbot.opencv.CvWorker;
+import com.ttolley.pongbot.opencv.PublishObject;
+import gnu.io.SerialPort;
+import gnu.io.SerialPortEvent;
+import java.awt.Graphics;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
-import java.util.Timer;
+import java.awt.image.BufferedImage;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.TimerTask;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+import org.opencv.core.Mat;
 
 /**
  *
@@ -17,15 +30,21 @@ import java.util.TimerTask;
  */
 public class App extends javax.swing.JFrame implements KeyListener {
 
-    SerialTurret turret;
+    SerialDevice turret;
     byte inputState = 0;
+
+    private Panel panel1;
+    private JFrame frame1;
+    private Panel panel2;
+    private JFrame frame2;
 
     /**
      * Creates new form App
      */
     public App() {
         initComponents();
-        turret = new SerialTurret();
+        turret = new SerialDevice();
+
         worker = new CvWorker();
 
         addKeyListener(this);
@@ -45,6 +64,7 @@ public class App extends javax.swing.JFrame implements KeyListener {
 
         jSpinner2 = new javax.swing.JSpinner();
         jSpinner3 = new javax.swing.JSpinner();
+        jSplitPane1 = new javax.swing.JSplitPane();
         jPanel1 = new javax.swing.JPanel();
         hueMinLabel = new javax.swing.JLabel();
         hueMinSlider = new javax.swing.JSlider();
@@ -67,10 +87,14 @@ public class App extends javax.swing.JFrame implements KeyListener {
         jLabel4 = new javax.swing.JLabel();
         erodeSizeSpinner = new javax.swing.JSpinner();
         dilateSizeSpinner = new javax.swing.JSpinner();
-        jPanel3 = new javax.swing.JPanel();
+        jPanel6 = new javax.swing.JPanel();
+        jPanel5 = new javax.swing.JPanel();
+        jScrollPane1 = new javax.swing.JScrollPane();
+        serialLog = new javax.swing.JTextArea();
         jPanel2 = new javax.swing.JPanel();
+        jPanel7 = new javax.swing.JPanel();
         dataField = new java.awt.TextField();
-        jPanel4 = new javax.swing.JPanel();
+        jPanel8 = new javax.swing.JPanel();
         sendButton = new javax.swing.JButton();
         connectButton = new javax.swing.JButton();
 
@@ -250,22 +274,28 @@ public class App extends javax.swing.JFrame implements KeyListener {
         gridBagConstraints.gridy = 4;
         jPanel1.add(dilateSizeSpinner, gridBagConstraints);
 
-        getContentPane().add(jPanel1, java.awt.BorderLayout.CENTER);
+        jSplitPane1.setLeftComponent(jPanel1);
 
-        jPanel3.setLayout(new java.awt.GridBagLayout());
+        jPanel6.setLayout(new java.awt.BorderLayout());
+
+        jPanel5.setLayout(new java.awt.BorderLayout());
+
+        serialLog.setColumns(20);
+        serialLog.setRows(5);
+        jScrollPane1.setViewportView(serialLog);
+
+        jPanel5.add(jScrollPane1, java.awt.BorderLayout.CENTER);
+
+        jPanel6.add(jPanel5, java.awt.BorderLayout.CENTER);
 
         jPanel2.setLayout(new java.awt.BorderLayout());
-        jPanel2.add(dataField, java.awt.BorderLayout.CENTER);
 
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 0;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
-        gridBagConstraints.ipadx = 250;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTH;
-        jPanel3.add(jPanel2, gridBagConstraints);
+        jPanel7.setLayout(new java.awt.BorderLayout());
+        jPanel7.add(dataField, java.awt.BorderLayout.CENTER);
 
-        jPanel4.setLayout(new java.awt.BorderLayout());
+        jPanel2.add(jPanel7, java.awt.BorderLayout.CENTER);
+
+        jPanel8.setLayout(new java.awt.BorderLayout());
 
         sendButton.setText("Send");
         sendButton.addActionListener(new java.awt.event.ActionListener() {
@@ -273,13 +303,7 @@ public class App extends javax.swing.JFrame implements KeyListener {
                 sendButtonActionPerformed(evt);
             }
         });
-        jPanel4.add(sendButton, java.awt.BorderLayout.PAGE_START);
-
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 0;
-        gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
-        jPanel3.add(jPanel4, gridBagConstraints);
+        jPanel8.add(sendButton, java.awt.BorderLayout.WEST);
 
         connectButton.setText("Connect");
         connectButton.addActionListener(new java.awt.event.ActionListener() {
@@ -287,9 +311,15 @@ public class App extends javax.swing.JFrame implements KeyListener {
                 connectButtonActionPerformed(evt);
             }
         });
-        jPanel3.add(connectButton, new java.awt.GridBagConstraints());
+        jPanel8.add(connectButton, java.awt.BorderLayout.EAST);
 
-        getContentPane().add(jPanel3, java.awt.BorderLayout.NORTH);
+        jPanel2.add(jPanel8, java.awt.BorderLayout.LINE_END);
+
+        jPanel6.add(jPanel2, java.awt.BorderLayout.PAGE_START);
+
+        jSplitPane1.setRightComponent(jPanel6);
+
+        getContentPane().add(jSplitPane1, java.awt.BorderLayout.CENTER);
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
@@ -312,12 +342,47 @@ public class App extends javax.swing.JFrame implements KeyListener {
         if (!turret.initialize()) {
             throw new IllegalStateException("Unable to initialize serial connection");
         }
+        turret.registerEventHandler(new ConsoleSerialEventHandler());
+        turret.registerEventHandler(new SerialEventHandler() {
+            BufferedReader input;
+
+            @Override
+            public void handle(SerialPortEvent event) {
+                String line = null;
+                try {
+                    switch (event.getEventType()) {
+                        case SerialPortEvent.DATA_AVAILABLE:
+                            if (input != null) {
+                                line = input.readLine();
+                            }
+                            break;
+
+                        default:
+                            break;
+                    }
+                } catch (Exception e) {
+                    line = e.toString();
+                }
+                App.this.serialLog.setText(App.this.serialLog.getText() + line + "\r\n");
+            }
+
+            @Override
+            public void registerSerialPort(SerialPort serialPort) {
+                try {
+                    input = new BufferedReader(
+                            new InputStreamReader(
+                                    serialPort.getInputStream()));
+                } catch (IOException ex) {
+                    Logger.getLogger(ConsoleSerialEventHandler.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+        });
     }//GEN-LAST:event_connectButtonActionPerformed
 
     private void sendButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_sendButtonActionPerformed
         final String data = dataField.getText();
         dataField.setText("");
-        turret.sendTurretCommand(data.getBytes());
+        turret.sendData(data.getBytes());
     }//GEN-LAST:event_sendButtonActionPerformed
 
     private void saturationMinSliderStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_saturationMinSliderStateChanged
@@ -349,7 +414,41 @@ public class App extends javax.swing.JFrame implements KeyListener {
     }//GEN-LAST:event_valueMaxSliderStateChanged
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+        frame1 = new JFrame("Camera");
+        frame1.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame1.setSize(640, 480);
+        frame1.setBounds(0, 0, frame1.getWidth(), frame1.getHeight());
+        panel1 = new Panel();
+        frame1.setContentPane(panel1);
+        frame2 = new JFrame("Threshold");
+        frame2.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame2.setSize(640, 480);
+        frame2.setBounds(0, 0, frame1.getWidth(), frame1.getHeight());
+        panel2 = new Panel();
+        frame2.setContentPane(panel2);
+
         worker.execute();
+
+        worker.registerCameraEventHandler(new CameraEventHandler() {
+
+            @Override
+            public void handleLatestCameraResult(PublishObject obj) {
+                if (!frame1.isVisible()) {
+                    frame1.setVisible(true);
+                    frame1.setSize(obj.webcamImage.width() + 40, obj.webcamImage.height() + 60);
+                }
+                if (!frame2.isVisible()) {
+                    frame2.setVisible(true);
+                    frame2.setSize(obj.thresholdImage.width() + 40, obj.thresholdImage.height() + 60);
+                }
+                panel1.setimagewithMat(obj.webcamImage);
+                frame1.repaint();
+                panel2.setimagewithMat(obj.thresholdImage);
+                frame2.repaint();
+
+            }
+        });
+        
     }//GEN-LAST:event_jButton1ActionPerformed
 
     private void objectSizeSpinnerStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_objectSizeSpinnerStateChanged
@@ -427,10 +526,14 @@ public class App extends javax.swing.JFrame implements KeyListener {
     private javax.swing.JLabel jLabel4;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
-    private javax.swing.JPanel jPanel3;
-    private javax.swing.JPanel jPanel4;
+    private javax.swing.JPanel jPanel5;
+    private javax.swing.JPanel jPanel6;
+    private javax.swing.JPanel jPanel7;
+    private javax.swing.JPanel jPanel8;
+    private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JSpinner jSpinner2;
     private javax.swing.JSpinner jSpinner3;
+    private javax.swing.JSplitPane jSplitPane1;
     private javax.swing.JSpinner maxObjectSpinner;
     private javax.swing.JSpinner objectSizeSpinner;
     private javax.swing.JLabel saturationMaxLabel;
@@ -438,6 +541,7 @@ public class App extends javax.swing.JFrame implements KeyListener {
     private javax.swing.JLabel saturationMinLabel;
     private javax.swing.JSlider saturationMinSlider;
     private javax.swing.JButton sendButton;
+    private javax.swing.JTextArea serialLog;
     private javax.swing.JLabel valueMaxLabel;
     private javax.swing.JSlider valueMaxSlider;
     private javax.swing.JLabel valueMinLabel;
@@ -451,31 +555,31 @@ public class App extends javax.swing.JFrame implements KeyListener {
     public void keyPressed(KeyEvent e) {
         switch (e.getKeyCode()) {
             case KeyEvent.VK_NUMPAD1:
-                turret.sendTurretCommand("1".getBytes());
+                turret.sendData("1".getBytes());
                 break;
             case KeyEvent.VK_NUMPAD2:
-                turret.sendTurretCommand("2".getBytes());
+                turret.sendData("2".getBytes());
                 break;
             case KeyEvent.VK_NUMPAD3:
-                turret.sendTurretCommand("3".getBytes());
+                turret.sendData("3".getBytes());
                 break;
             case KeyEvent.VK_NUMPAD4:
-                turret.sendTurretCommand("4".getBytes());
+                turret.sendData("4".getBytes());
                 break;
             case KeyEvent.VK_NUMPAD5:
-                turret.sendTurretCommand("5".getBytes());
+                turret.sendData("5".getBytes());
                 break;
             case KeyEvent.VK_NUMPAD6:
-                turret.sendTurretCommand("6".getBytes());
+                turret.sendData("6".getBytes());
                 break;
             case KeyEvent.VK_NUMPAD7:
-                turret.sendTurretCommand("7".getBytes());
+                turret.sendData("7".getBytes());
                 break;
             case KeyEvent.VK_NUMPAD8:
-                turret.sendTurretCommand("8".getBytes());
+                turret.sendData("8".getBytes());
                 break;
             case KeyEvent.VK_NUMPAD9:
-                turret.sendTurretCommand("9".getBytes());
+                turret.sendData("9".getBytes());
                 break;
         }
     }
@@ -491,4 +595,75 @@ public class App extends javax.swing.JFrame implements KeyListener {
     }
 
     TimerTask timerTask;
+}
+
+class Panel extends JPanel {
+
+    private static final long serialVersionUID = 1L;
+    private BufferedImage image;
+
+    // Create a constructor method  
+    public Panel() {
+        super();
+    }
+
+    private BufferedImage getimage() {
+        return image;
+    }
+
+    public void setimage(BufferedImage newimage) {
+        image = newimage;
+        return;
+    }
+
+    public void setimagewithMat(Mat newimage) {
+        image = this.matToBufferedImage(newimage);
+        return;
+    }
+
+    /**
+     * Converts/writes a Mat into a BufferedImage.
+     *
+     * @param matrix Mat of type CV_8UC3 or CV_8UC1
+     * @return BufferedImage of type TYPE_3BYTE_BGR or TYPE_BYTE_GRAY
+     */
+    public BufferedImage matToBufferedImage(Mat matrix) {
+        int cols = matrix.cols();
+        int rows = matrix.rows();
+        int elemSize = (int) matrix.elemSize();
+        byte[] data = new byte[cols * rows * elemSize];
+        int type;
+        matrix.get(0, 0, data);
+        switch (matrix.channels()) {
+            case 1:
+                type = BufferedImage.TYPE_BYTE_GRAY;
+                break;
+            case 3:
+                type = BufferedImage.TYPE_3BYTE_BGR;
+                // bgr to rgb  
+                byte b;
+                for (int i = 0; i < data.length; i = i + 3) {
+                    b = data[i];
+                    data[i] = data[i + 2];
+                    data[i + 2] = b;
+                }
+                break;
+            default:
+                return null;
+        }
+        BufferedImage image2 = new BufferedImage(cols, rows, type);
+        image2.getRaster().setDataElements(0, 0, cols, rows, data);
+        return image2;
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        //BufferedImage temp=new BufferedImage(640, 480, BufferedImage.TYPE_3BYTE_BGR);  
+        BufferedImage temp = getimage();
+        //Graphics2D g2 = (Graphics2D)g;
+        if (temp != null) {
+            g.drawImage(temp, 10, 10, temp.getWidth(), temp.getHeight(), this);
+        }
+    }
 }

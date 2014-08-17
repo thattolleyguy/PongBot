@@ -3,8 +3,12 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/home/tyler/code/PongBot/java/src/com/ttolley/pongbot/opencv/CvWorker.java</file>
+            <file>file:/home/tyler/code/PongBot/java/src/com/ttolley/pongbot/controller/ConsoleSerialEventHandler.java</file>
+            <file>file:/home/tyler/code/PongBot/java/src/com/ttolley/pongbot/controller/SerialDevice.java</file>
+            <file>file:/home/tyler/code/PongBot/java/src/com/ttolley/pongbot/opencv/PublishObject.java</file>
+            <file>file:/home/tyler/code/PongBot/java/src/com/ttolley/pongbot/controller/SerialEventHandler.java</file>
             <file>file:/home/tyler/code/PongBot/java/src/com/ttolley/pongbot/controller/App.java</file>
+            <file>file:/home/tyler/code/PongBot/java/src/com/ttolley/pongbot/opencv/CvWorker.java</file>
         </group>
     </open-files>
 </project-private>

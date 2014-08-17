@@ -5,21 +5,20 @@
  */
 package com.ttolley.pongbot.controller;
 
-import gnu.io.CommPort;
 import gnu.io.CommPortIdentifier;
 import gnu.io.SerialPort;
 import gnu.io.SerialPortEvent;
 import gnu.io.SerialPortEventListener;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.List;
 
 /**
  *
  * @author tyler
  */
-public class SerialTurret implements SerialPortEventListener {
+public class SerialDevice implements SerialPortEventListener {
 
     SerialPort serialPort = null;
 
@@ -32,11 +31,11 @@ public class SerialTurret implements SerialPortEventListener {
     };
 
     private String appName;
-    private BufferedReader input;
     private OutputStream output;
 
     private static final int TIME_OUT = 1000; // Port open timeout
     private static final int DATA_RATE = 9600; // Arduino serial port
+    private List<SerialEventHandler> handlers = new ArrayList<>();
 
     public boolean initialize() {
         try {
@@ -95,7 +94,7 @@ public class SerialTurret implements SerialPortEventListener {
         return false;
     }
 
-    private void sendData(byte[] data) {
+    public void sendData(byte[] data) {
         try {
             System.out.println("Sending data: '" + data + "'");
 
@@ -107,13 +106,6 @@ public class SerialTurret implements SerialPortEventListener {
             System.err.println(e.toString());
             System.exit(0);
         }
-    }
-    
-    
-    
-    public void sendTurretCommand(byte[] commandState)
-    {
-        this.sendData(commandState);
     }
 
     //
@@ -131,32 +123,28 @@ public class SerialTurret implements SerialPortEventListener {
     //
     @Override
     public synchronized void serialEvent(SerialPortEvent oEvent) {
-        try {
-            switch (oEvent.getEventType()) {
-                case SerialPortEvent.DATA_AVAILABLE:
-                    if (input == null) {
-                        input = new BufferedReader(
-                                new InputStreamReader(
-                                        serialPort.getInputStream()));
-                    }
-                    String inputLine = input.readLine();
-                    System.out.println(inputLine);
-                    break;
+        for (SerialEventHandler serialEventHandler : handlers) {
+            try {
+                serialEventHandler.handle(oEvent);
 
-                default:
-                    break;
+            } catch (Exception e) {
+                System.err.println(e.toString());
             }
-        } catch (Exception e) {
-            System.err.println(e.toString());
         }
+        
+    }
+    public void registerEventHandler(SerialEventHandler handler)
+    {
+        handler.registerSerialPort(serialPort);
+        this.handlers.add(handler);
     }
 
-    public SerialTurret() {
+    public SerialDevice() {
         appName = getClass().getName();
     }
 
     public static void main(String[] args) throws Exception {
-        SerialTurret test = new SerialTurret();
+        SerialDevice test = new SerialDevice();
         if (test.initialize()) {
 //            test.sendData("f");
 //            test.sendData("r");
