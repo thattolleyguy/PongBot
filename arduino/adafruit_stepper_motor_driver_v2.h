@@ -16,38 +16,41 @@ namespace Michelino {
          * @param number the DC motor number to control, from 1 to 4.
          */
         Motor(int leftNumber, int rightNumber, int servoPin)
-        : MotorDriver(), currentSpeed(0), motorDirection(RELEASE),
-        servoPin(servoPin), servoPos(90) {
+        : MotorDriver(), currentSpeed(30), leftMotorNumber(leftNumber),
+        rightMotorNumber(rightNumber), leftMotorDirection(FORWARD),
+        rightMotorDirection(FORWARD), servoPin(servoPin), servoPos(90) {
             AFMS = Adafruit_MotorShield();
 
         }
 
         void initialize() {
-            motor1 = AFMS.getMotor(1);
-            motor2 = AFMS.getMotor(2);
-            motor3 = AFMS.getMotor(3);
-            motor4 = AFMS.getMotor(4);
+            leftMotor = AFMS.getStepper(200, 1);
+            rightMotor = AFMS.getStepper(200, 2);
             paddleServo.attach(servoPin);
             paddleServo.write(servoPos);
             AFMS.begin();
-            setSpeed(255);
+            setSpeed(500);
 
         }
 
         void moveLeft() {
-            if (motorDirection != BACKWARD) {
+            if (leftMotorDirection != FORWARD) {
                 Serial.println("Changing direction to left");
-                motorDirection = BACKWARD;
-                updateDirection();
+                leftMotorDirection = FORWARD;
+                rightMotorDirection = FORWARD;
+                //            setSpeed(255);
             }
+            move();
         }
 
         void moveRight() {
-            if (motorDirection != FORWARD) {
+            if (leftMotorDirection != BACKWARD) {
                 Serial.println("Changing direction to right");
-                motorDirection = FORWARD;
-                updateDirection();
+                leftMotorDirection = BACKWARD;
+                rightMotorDirection = BACKWARD;
+                //            setSpeed(255);
             }
+            move();
         }
 
         void stopMotor() {
@@ -58,32 +61,36 @@ namespace Michelino {
         }
 
         void paddleCenter() {
-            Serial.println("Moving paddle center");
+            //            Serial.println("Moving paddle center");
             servoPos = 90;
             updatePaddle();
         }
 
         void paddleLeft() {
-            Serial.println("Prepping paddle left");
-            servoPos = 180;
+            //            Serial.println("Prepping paddle left");
+            servoPos = 0;
             updatePaddle();
         }
 
         void paddleRight() {
-            Serial.println("Prepping paddle right");
-            servoPos = 0;
+            //            Serial.println("Prepping paddle right");
+            servoPos = 180;
             updatePaddle();
+        }
+
+        void paddleStop() {
+
         }
 
         void updatePaddle() {
             paddleServo.write(servoPos);
         }
 
-        void updateDirection() {
-            motor1->run(motorDirection);
-            motor2->run(motorDirection);
-            motor3->run(motorDirection);
-            motor4->run(motorDirection);
+        void move() {
+            //            leftMotor->step(100, leftMotorDirection, SINGLE);
+            //            rightMotor->step(100, rightMotorDirection, SINGLE);
+            leftMotor->step(100, FORWARD, SINGLE);
+            rightMotor->step(100, FORWARD, SINGLE);
         }
 
         void setSpeed(int speed) {
@@ -91,10 +98,8 @@ namespace Michelino {
                 Serial.print("Changing speed to");
                 Serial.println(speed);
                 currentSpeed = speed;
-                motor1->setSpeed(speed);
-                motor2->setSpeed(speed);
-                motor3->setSpeed(speed);
-                motor4->setSpeed(speed);
+                leftMotor->setSpeed(speed);
+                rightMotor->setSpeed(speed);
             }
         }
 
@@ -104,14 +109,15 @@ namespace Michelino {
 
     private:
         Adafruit_MotorShield AFMS;
-        Adafruit_DCMotor *motor1;
-        Adafruit_DCMotor *motor2;
-        Adafruit_DCMotor *motor3;
-        Adafruit_DCMotor *motor4;
+        Adafruit_StepperMotor *leftMotor;
+        Adafruit_StepperMotor *rightMotor;
         Servo paddleServo;
         int servoPin;
         int servoPos;
         int currentSpeed;
-        int motorDirection;
+        int leftMotorNumber;
+        int rightMotorNumber;
+        int leftMotorDirection;
+        int rightMotorDirection;
     };
 };

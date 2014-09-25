@@ -17,13 +17,14 @@
       <itemPath>Makefile.old</itemPath>
       <itemPath>README.md</itemPath>
       <itemPath>adafruit_motor_driver_v2.h</itemPath>
-      <itemPath>hardware_serial_controller.h</itemPath>
+      <itemPath>adafruit_stepper_motor_driver_v2.h</itemPath>
+      <itemPath>computer_controlled_driver.h</itemPath>
+      <itemPath>control_driver.h</itemPath>
       <itemPath>logging.h</itemPath>
       <itemPath>main.cpp</itemPath>
       <itemPath>motor_driver.h</itemPath>
       <itemPath>newping_distance_sensor.h</itemPath>
-      <itemPath>remote_control.h</itemPath>
-      <itemPath>software_serial_controller.h</itemPath>
+      <itemPath>remote_controlled_driver.h</itemPath>
     </logicalFolder>
     <logicalFolder name="TestFiles"
                    displayName="Test Files"
@@ -74,9 +75,13 @@
       </item>
       <item path="adafruit_motor_driver_v2.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="adafruit_stepper_motor_driver_v2.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="command.h" ex="false" tool="3" flavor2="0">
       </item>
-      <item path="hardware_serial_controller.h" ex="false" tool="3" flavor2="0">
+      <item path="computer_controlled_driver.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="control_driver.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="logging.h" ex="false" tool="3" flavor2="0">
       </item>
@@ -86,9 +91,7 @@
       </item>
       <item path="newping_distance_sensor.h" ex="false" tool="3" flavor2="0">
       </item>
-      <item path="remote_control.h" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="software_serial_controller.h" ex="false" tool="3" flavor2="0">
+      <item path="remote_controlled_driver.h" ex="false" tool="3" flavor2="0">
       </item>
     </conf>
     <conf name="Release" type="1">
@@ -119,9 +122,13 @@
       </item>
       <item path="adafruit_motor_driver_v2.h" ex="false" tool="3" flavor2="0">
       </item>
+      <item path="adafruit_stepper_motor_driver_v2.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="command.h" ex="false" tool="3" flavor2="0">
       </item>
-      <item path="hardware_serial_controller.h" ex="false" tool="3" flavor2="0">
+      <item path="computer_controlled_driver.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="control_driver.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="logging.h" ex="false" tool="3" flavor2="0">
       </item>
@@ -131,9 +138,7 @@
       </item>
       <item path="newping_distance_sensor.h" ex="false" tool="3" flavor2="0">
       </item>
-      <item path="remote_control.h" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="software_serial_controller.h" ex="false" tool="3" flavor2="0">
+      <item path="remote_controlled_driver.h" ex="false" tool="3" flavor2="0">
       </item>
     </conf>
   </confs>

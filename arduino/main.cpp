@@ -1,31 +1,3 @@
-// Michelino
-// Robot Vehicle firmware for the Arduino platform
-//
-// Copyright (c) 2013 by Miguel Grinberg
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is furnished
-// to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in all
-// copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-// FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-// COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
-// AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-// WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-/**
- * @file michelino.ino
- * @brief Arduino robot vehicle firmware.
- * @author Miguel Grinberg
- */
-
 #define LOGGING
 
 // Device drivers
@@ -33,13 +5,13 @@
 
 // Motor controller:
 #define ENABLE_ADAFRUIT_MOTOR_DRIVER_V2
-
-// Distance sensor
-//#define ENABLE_NEWPING_DISTANCE_SENSOR_DRIVER
+//#define ENABLE_ADAFRUIT_STEPPER_MOTOR_DRIVER_V2
 
 // Remote control:
-//#define ENABLE_SOFTWARE_SERIAL_REMOTE_CONTROL_DRIVER
-#define ENABLE_HARDWARE_SERIAL_REMOTE_CONTROL_DRIVER
+//#define SOFTWARE_SERIAL
+#define HARDWARE_SERIAL
+#define COMPUTER_CONTROLLED_DRIVER
+//#define REMOTE_CONTROLLED_DRIVER
 
 
 
@@ -53,6 +25,16 @@
 #define MOTOR_INIT 1,4,9
 #endif
 
+#ifdef ENABLE_ADAFRUIT_STEPPER_MOTOR_DRIVER_V2
+#include <Wire.h>
+#include <Adafruit_MotorShield.h>
+#include <Arduino.h>
+#include <Servo.h>
+#include "utility/Adafruit_PWMServoDriver.h"
+#include "adafruit_stepper_motor_driver_v2.h"
+#define MOTOR_INIT 1,4,9
+#endif
+
 
 #ifdef ENABLE_NEWPING_DISTANCE_SENSOR_DRIVER
 #include <NewPing.h>
@@ -60,21 +42,28 @@
 #define DISTANCE_SENSOR_INIT 14,14
 #endif
 
-#ifdef ENABLE_SOFTWARE_SERIAL_REMOTE_CONTROL_DRIVER
+#include "control_driver.h"
+
+#ifdef HARDWARE_SERIAL
+#define REMOTE_CONTROL_INIT Serial
+#endif
+
+#ifdef SOFTWARE_SERIAL
 #define BT_RX_PIN 15                    /**< RX pin for Bluetooth communcation */
 #define BT_TX_PIN 16                    /**< TX pin for Bluetooth communcation */
 
 #include <SoftwareSerial.h>
 SoftwareSerial BTSerial(BT_RX_PIN, BT_TX_PIN);
-#include "software_serial_controller.h"
 #define REMOTE_CONTROL_INIT BTSerial
 #endif
 
-#ifdef ENABLE_HARDWARE_SERIAL_REMOTE_CONTROL_DRIVER
-#include "hardware_serial_controller.h"
-#define REMOTE_CONTROL_INIT Serial
+#ifdef COMPUTER_CONTROLLED_DRIVER
+#include "computer_controlled_driver.h"
 #endif
 
+#ifdef REMOTE_CONTROLLED_DRIVER
+#include "remote_controlled_driver.h"
+#endif
 
 #include "logging.h"
 
@@ -90,6 +79,7 @@ namespace Michelino {
         :
         motor(MOTOR_INIT),
         remoteControl(REMOTE_CONTROL_INIT) {
+
         }
 
         /*
@@ -104,34 +94,36 @@ namespace Michelino {
          *  Must be called repeatedly while the robot is in operation.
          */
         void run() {
-            RemoteControlDriver::command_t remoteCmd;
+            ControlDriver::command_t remoteCmd;
             bool haveRemoteCmd = remoteControl.getRemoteCommand(remoteCmd);
-            switch (remoteCmd.direction) {
-                case RemoteControlDriver::command_t::left:
-                    motor.moveLeft();
-                    break;
-                case RemoteControlDriver::command_t::right:
-                    motor.moveRight();
-                    break;
-                case RemoteControlDriver::command_t::stopMotor:
-                    motor.stopMotor();
-                    break;
-                default:
-                    break;
+
+            if (haveRemoteCmd) {
+                motor.setSpeed((int) (255 * remoteCmd.speedPercent));
+                switch (remoteCmd.direction) {
+                    case ControlDriver::command_t::moveLeft:
+                        motor.moveLeft();
+                        break;
+                    case ControlDriver::command_t::moveRight:
+                        motor.moveRight();
+                        break;
+                    default:
+                        break;
+                }
+                switch (remoteCmd.motion) {
+                    case ControlDriver::command_t::center:
+                        motor.paddleCenter();
+                        break;
+                    case ControlDriver::command_t::paddleLeft:
+                        motor.paddleLeft();
+                        break;
+                    case ControlDriver::command_t::paddleRight:
+                        motor.paddleRight();
+                        break;
+                    default:
+                        break;
+                }
             }
-            switch (remoteCmd.motion) {
-                case RemoteControlDriver::command_t::forward:
-                    motor.paddleForward();
-                    break;
-                case RemoteControlDriver::command_t::back:
-                    motor.paddleBack();
-                    break;
-                case RemoteControlDriver::command_t::stopPaddle:
-                    motor.paddleStop();
-                    break;
-                default:
-                    break;
-            }
+
         }
 
     private:
@@ -144,6 +136,10 @@ namespace Michelino {
 Michelino::Robot robot;
 
 void setup() {
+
+#ifdef SOFTWARE_SERIAL
+    BTSerial.begin(9600);
+#endif
     Serial.begin(9600);
     robot.initialize();
 

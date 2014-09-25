@@ -9,11 +9,11 @@ CND_DISTDIR=dist
 # Debug configuration
 CND_PLATFORM_Debug=Arduino-Linux-x86
 CND_ARTIFACT_DIR_Debug=dist/Debug/Arduino-Linux-x86
-CND_ARTIFACT_NAME_Debug=pongbot
-CND_ARTIFACT_PATH_Debug=dist/Debug/Arduino-Linux-x86/pongbot
+CND_ARTIFACT_NAME_Debug=arduino
+CND_ARTIFACT_PATH_Debug=dist/Debug/Arduino-Linux-x86/arduino
 CND_PACKAGE_DIR_Debug=dist/Debug/Arduino-Linux-x86/package
-CND_PACKAGE_NAME_Debug=pongbot.tar
-CND_PACKAGE_PATH_Debug=dist/Debug/Arduino-Linux-x86/package/pongbot.tar
+CND_PACKAGE_NAME_Debug=arduino.tar
+CND_PACKAGE_PATH_Debug=dist/Debug/Arduino-Linux-x86/package/arduino.tar
 # Release configuration
 CND_PLATFORM_Release=Arduino-Windows
 CND_ARTIFACT_DIR_Release=dist/Release/Arduino-Windows

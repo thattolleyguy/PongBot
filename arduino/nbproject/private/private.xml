@@ -7,11 +7,10 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
-            <file>file:/home/tyler/code/PongBot/software_serial_controller.h</file>
-            <file>file:/home/tyler/code/PongBot/hardware_serial_controller.h</file>
-            <file>file:/home/tyler/code/PongBot/remote_control.h</file>
-            <file>file:/home/tyler/code/PongBot/adafruit_motor_driver_v2.h</file>
-            <file>file:/home/tyler/code/PongBot/main.cpp</file>
+            <file>file:/home/tyler/code/PongBot/arduino/control_driver.h</file>
+            <file>file:/home/tyler/code/PongBot/arduino/computer_controlled_driver.h</file>
+            <file>file:/home/tyler/code/PongBot/arduino/main.cpp</file>
+            <file>file:/home/tyler/code/PongBot/arduino/remote_controlled_driver.h</file>
         </group>
     </open-files>
 </project-private>
