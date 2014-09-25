@@ -7,50 +7,57 @@ package com.ttolley.pongbot.controller;
 
 import com.ttolley.pongbot.opencv.CameraEventHandler;
 import com.ttolley.pongbot.opencv.CvWorker;
+import com.ttolley.pongbot.opencv.CvWorker.FilterType;
+import com.ttolley.pongbot.opencv.FilteredObject;
 import com.ttolley.pongbot.opencv.PublishObject;
 import gnu.io.SerialPort;
 import gnu.io.SerialPortEvent;
-import java.awt.Graphics;
-import java.awt.event.KeyEvent;
-import java.awt.event.KeyListener;
-import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.EnumMap;
+import java.util.Map;
 import java.util.TimerTask;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JFrame;
-import javax.swing.JPanel;
-import org.opencv.core.Mat;
 
 /**
  *
  * @author tyler
  */
-public class App extends javax.swing.JFrame implements KeyListener {
+public class App extends javax.swing.JFrame {
 
-    SerialDevice turret;
     byte inputState = 0;
 
-    private Panel panel1;
-    private JFrame frame1;
-    private Panel panel2;
-    private JFrame frame2;
+    private CvPanel webcamImagePanel;
+    private JFrame webcamImageFrame;
+    private CvPanel ballPanel;
+    private JFrame ballFrame;
+    private CvPanel robotPanel;
+    private JFrame robotFrame;
+    private final PongBot pb;
+    private final CvWorker worker;
+    private final Map<FilterType, CvFilterPanel> panelMap;
 
     /**
      * Creates new form App
      */
     public App() {
-        initComponents();
-        turret = new SerialDevice();
-
         worker = new CvWorker();
-
-        addKeyListener(this);
+        panelMap = new EnumMap<>(FilterType.class);
+        for (FilterType filterType : FilterType.values()) {
+            final CvWorker.Filter filter = new CvWorker.Filter(filterType.hMin, filterType.sMin, filterType.vMin, filterType.hMax, filterType.sMax, filterType.vMax,
+                    filterType.objSize, filterType.numObj, filterType.erode, filterType.dilate);
+            worker.setFilter(filterType, filter);
+            panelMap.put(filterType, new CvFilterPanel(filter));
+        }
+        initComponents();
+        jSplitPane2.setTopComponent(panelMap.get(FilterType.BALL));
+        jSplitPane2.setBottomComponent(panelMap.get(FilterType.ROBOT));
+        pb = new PongBot();
 
     }
-    private final CvWorker worker;
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -65,31 +72,9 @@ public class App extends javax.swing.JFrame implements KeyListener {
         jSpinner2 = new javax.swing.JSpinner();
         jSpinner3 = new javax.swing.JSpinner();
         jSplitPane1 = new javax.swing.JSplitPane();
-        jPanel1 = new javax.swing.JPanel();
-        hueMinLabel = new javax.swing.JLabel();
-        hueMinSlider = new javax.swing.JSlider();
-        hueMaxLabel = new javax.swing.JLabel();
-        hueMaxSlider = new javax.swing.JSlider();
-        saturationMinLabel = new javax.swing.JLabel();
-        saturationMinSlider = new javax.swing.JSlider();
-        saturationMaxLabel = new javax.swing.JLabel();
-        saturationMaxSlider = new javax.swing.JSlider();
-        valueMinLabel = new javax.swing.JLabel();
-        valueMinSlider = new javax.swing.JSlider();
-        valueMaxLabel = new javax.swing.JLabel();
-        valueMaxSlider = new javax.swing.JSlider();
-        jButton1 = new javax.swing.JButton();
-        jLabel1 = new javax.swing.JLabel();
-        maxObjectSpinner = new javax.swing.JSpinner();
-        jLabel2 = new javax.swing.JLabel();
-        objectSizeSpinner = new javax.swing.JSpinner();
-        jLabel3 = new javax.swing.JLabel();
-        jLabel4 = new javax.swing.JLabel();
-        erodeSizeSpinner = new javax.swing.JSpinner();
-        dilateSizeSpinner = new javax.swing.JSpinner();
         jPanel6 = new javax.swing.JPanel();
         jPanel5 = new javax.swing.JPanel();
-        jScrollPane1 = new javax.swing.JScrollPane();
+        scrollPane = new javax.swing.JScrollPane();
         serialLog = new javax.swing.JTextArea();
         jPanel2 = new javax.swing.JPanel();
         jPanel7 = new javax.swing.JPanel();
@@ -97,194 +82,25 @@ public class App extends javax.swing.JFrame implements KeyListener {
         jPanel8 = new javax.swing.JPanel();
         sendButton = new javax.swing.JButton();
         connectButton = new javax.swing.JButton();
+        jButton1 = new javax.swing.JButton();
+        jSplitPane2 = new javax.swing.JSplitPane();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        setMinimumSize(new java.awt.Dimension(800, 450));
 
-        jPanel1.setLayout(new java.awt.GridBagLayout());
-
-        hueMinLabel.setText("Hue Min");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 0;
-        jPanel1.add(hueMinLabel, gridBagConstraints);
-
-        hueMinSlider.setMaximum(180);
-        hueMinSlider.addChangeListener(new javax.swing.event.ChangeListener() {
-            public void stateChanged(javax.swing.event.ChangeEvent evt) {
-                hueMinSliderStateChanged(evt);
-            }
-        });
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 0;
-        gridBagConstraints.anchor = java.awt.GridBagConstraints.NORTHWEST;
-        jPanel1.add(hueMinSlider, gridBagConstraints);
-
-        hueMaxLabel.setText("Hue Max");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 1;
-        jPanel1.add(hueMaxLabel, gridBagConstraints);
-
-        hueMaxSlider.setMaximum(180);
-        hueMaxSlider.addChangeListener(new javax.swing.event.ChangeListener() {
-            public void stateChanged(javax.swing.event.ChangeEvent evt) {
-                hueMaxSliderStateChanged(evt);
-            }
-        });
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 1;
-        jPanel1.add(hueMaxSlider, gridBagConstraints);
-
-        saturationMinLabel.setText("Saturation Min");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 2;
-        jPanel1.add(saturationMinLabel, gridBagConstraints);
-
-        saturationMinSlider.setMaximum(256);
-        saturationMinSlider.addChangeListener(new javax.swing.event.ChangeListener() {
-            public void stateChanged(javax.swing.event.ChangeEvent evt) {
-                saturationMinSliderStateChanged(evt);
-            }
-        });
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 2;
-        jPanel1.add(saturationMinSlider, gridBagConstraints);
-
-        saturationMaxLabel.setText("Saturation Max");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 3;
-        jPanel1.add(saturationMaxLabel, gridBagConstraints);
-
-        saturationMaxSlider.setMaximum(256);
-        saturationMaxSlider.addChangeListener(new javax.swing.event.ChangeListener() {
-            public void stateChanged(javax.swing.event.ChangeEvent evt) {
-                saturationMaxSliderStateChanged(evt);
-            }
-        });
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 3;
-        jPanel1.add(saturationMaxSlider, gridBagConstraints);
-
-        valueMinLabel.setText("Value Min");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 4;
-        jPanel1.add(valueMinLabel, gridBagConstraints);
-
-        valueMinSlider.setMaximum(256);
-        valueMinSlider.addChangeListener(new javax.swing.event.ChangeListener() {
-            public void stateChanged(javax.swing.event.ChangeEvent evt) {
-                valueMinSliderStateChanged(evt);
-            }
-        });
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 4;
-        jPanel1.add(valueMinSlider, gridBagConstraints);
-
-        valueMaxLabel.setText("Value Max");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 0;
-        gridBagConstraints.gridy = 5;
-        jPanel1.add(valueMaxLabel, gridBagConstraints);
-
-        valueMaxSlider.setMaximum(256);
-        valueMaxSlider.addChangeListener(new javax.swing.event.ChangeListener() {
-            public void stateChanged(javax.swing.event.ChangeEvent evt) {
-                valueMaxSliderStateChanged(evt);
-            }
-        });
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 1;
-        gridBagConstraints.gridy = 5;
-        jPanel1.add(valueMaxSlider, gridBagConstraints);
-
-        jButton1.setText("Start CV");
-        jButton1.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton1ActionPerformed(evt);
-            }
-        });
-        jPanel1.add(jButton1, new java.awt.GridBagConstraints());
-
-        jLabel1.setText("Max Objects");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 2;
-        gridBagConstraints.gridy = 1;
-        jPanel1.add(jLabel1, gridBagConstraints);
-
-        maxObjectSpinner.setValue(3);
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 3;
-        gridBagConstraints.gridy = 1;
-        jPanel1.add(maxObjectSpinner, gridBagConstraints);
-
-        jLabel2.setText("Object Size");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 2;
-        gridBagConstraints.gridy = 2;
-        jPanel1.add(jLabel2, gridBagConstraints);
-
-        objectSizeSpinner.setValue(20);
-        objectSizeSpinner.addChangeListener(new javax.swing.event.ChangeListener() {
-            public void stateChanged(javax.swing.event.ChangeEvent evt) {
-                objectSizeSpinnerStateChanged(evt);
-            }
-        });
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 3;
-        gridBagConstraints.gridy = 2;
-        jPanel1.add(objectSizeSpinner, gridBagConstraints);
-
-        jLabel3.setText("Erode Size");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 2;
-        gridBagConstraints.gridy = 3;
-        jPanel1.add(jLabel3, gridBagConstraints);
-
-        jLabel4.setText("Dilate Size");
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 2;
-        gridBagConstraints.gridy = 4;
-        jPanel1.add(jLabel4, gridBagConstraints);
-
-        erodeSizeSpinner.addChangeListener(new javax.swing.event.ChangeListener() {
-            public void stateChanged(javax.swing.event.ChangeEvent evt) {
-                erodeSizeSpinnerStateChanged(evt);
-            }
-        });
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 3;
-        gridBagConstraints.gridy = 3;
-        jPanel1.add(erodeSizeSpinner, gridBagConstraints);
-
-        dilateSizeSpinner.addChangeListener(new javax.swing.event.ChangeListener() {
-            public void stateChanged(javax.swing.event.ChangeEvent evt) {
-                dilateSizeSpinnerStateChanged(evt);
-            }
-        });
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 3;
-        gridBagConstraints.gridy = 4;
-        jPanel1.add(dilateSizeSpinner, gridBagConstraints);
-
-        jSplitPane1.setLeftComponent(jPanel1);
+        jSplitPane1.setDividerLocation(400);
 
         jPanel6.setLayout(new java.awt.BorderLayout());
 
         jPanel5.setLayout(new java.awt.BorderLayout());
 
+        scrollPane.setAutoscrolls(true);
+
         serialLog.setColumns(20);
         serialLog.setRows(5);
-        jScrollPane1.setViewportView(serialLog);
+        scrollPane.setViewportView(serialLog);
 
-        jPanel5.add(jScrollPane1, java.awt.BorderLayout.CENTER);
+        jPanel5.add(scrollPane, java.awt.BorderLayout.CENTER);
 
         jPanel6.add(jPanel5, java.awt.BorderLayout.CENTER);
 
@@ -313,37 +129,36 @@ public class App extends javax.swing.JFrame implements KeyListener {
         });
         jPanel8.add(connectButton, java.awt.BorderLayout.EAST);
 
+        jButton1.setText("Start CV");
+        jButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton1ActionPerformed(evt);
+            }
+        });
+        jPanel8.add(jButton1, java.awt.BorderLayout.PAGE_END);
+
         jPanel2.add(jPanel8, java.awt.BorderLayout.LINE_END);
 
         jPanel6.add(jPanel2, java.awt.BorderLayout.PAGE_START);
 
         jSplitPane1.setRightComponent(jPanel6);
 
+        jSplitPane2.setDividerLocation(180);
+        jSplitPane2.setOrientation(javax.swing.JSplitPane.VERTICAL_SPLIT);
+        jSplitPane1.setLeftComponent(jSplitPane2);
+
         getContentPane().add(jSplitPane1, java.awt.BorderLayout.CENTER);
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
-    private void hueMinSliderStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_hueMinSliderStateChanged
-        if (hueMaxSlider.getValue() < hueMinSlider.getValue()) {
-            hueMaxSlider.setValue(hueMinSlider.getValue());
-        }
-        updateFilter();
-    }//GEN-LAST:event_hueMinSliderStateChanged
-
-    private void hueMaxSliderStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_hueMaxSliderStateChanged
-        if (hueMaxSlider.getValue() < hueMinSlider.getValue()) {
-            hueMinSlider.setValue(hueMaxSlider.getValue());
-        }
-        updateFilter();
-    }//GEN-LAST:event_hueMaxSliderStateChanged
-
     private void connectButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_connectButtonActionPerformed
-        if (!turret.initialize()) {
+
+        if (!pb.initialize()) {
             throw new IllegalStateException("Unable to initialize serial connection");
         }
-        turret.registerEventHandler(new ConsoleSerialEventHandler());
-        turret.registerEventHandler(new SerialEventHandler() {
+        pb.registerEventHandler(new ConsoleSerialEventHandler());
+        pb.registerEventHandler(new SerialEventHandler() {
             BufferedReader input;
 
             @Override
@@ -363,7 +178,7 @@ public class App extends javax.swing.JFrame implements KeyListener {
                 } catch (Exception e) {
                     line = e.toString();
                 }
-                App.this.serialLog.setText(App.this.serialLog.getText() + line + "\r\n");
+                App.this.serialLog.append(line + "\r\n");
             }
 
             @Override
@@ -382,92 +197,67 @@ public class App extends javax.swing.JFrame implements KeyListener {
     private void sendButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_sendButtonActionPerformed
         final String data = dataField.getText();
         dataField.setText("");
-        turret.sendData(data.getBytes());
+        pb.sendData(new byte[]{(byte) Integer.parseInt(data, 16)});
     }//GEN-LAST:event_sendButtonActionPerformed
 
-    private void saturationMinSliderStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_saturationMinSliderStateChanged
-        if (saturationMaxSlider.getValue() < saturationMinSlider.getValue()) {
-            saturationMaxSlider.setValue(saturationMinSlider.getValue());
-        }
-        updateFilter();
-    }//GEN-LAST:event_saturationMinSliderStateChanged
-
-    private void saturationMaxSliderStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_saturationMaxSliderStateChanged
-        if (saturationMaxSlider.getValue() < saturationMinSlider.getValue()) {
-            saturationMinSlider.setValue(saturationMaxSlider.getValue());
-        }
-        updateFilter();
-    }//GEN-LAST:event_saturationMaxSliderStateChanged
-
-    private void valueMinSliderStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_valueMinSliderStateChanged
-        if (valueMaxSlider.getValue() < valueMinSlider.getValue()) {
-            valueMaxSlider.setValue(valueMinSlider.getValue());
-        }
-        updateFilter();
-    }//GEN-LAST:event_valueMinSliderStateChanged
-
-    private void valueMaxSliderStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_valueMaxSliderStateChanged
-        if (valueMaxSlider.getValue() < valueMinSlider.getValue()) {
-            valueMinSlider.setValue(valueMaxSlider.getValue());
-        }
-        updateFilter();
-    }//GEN-LAST:event_valueMaxSliderStateChanged
-
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-        frame1 = new JFrame("Camera");
-        frame1.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame1.setSize(640, 480);
-        frame1.setBounds(0, 0, frame1.getWidth(), frame1.getHeight());
-        panel1 = new Panel();
-        frame1.setContentPane(panel1);
-        frame2 = new JFrame("Threshold");
-        frame2.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame2.setSize(640, 480);
-        frame2.setBounds(0, 0, frame1.getWidth(), frame1.getHeight());
-        panel2 = new Panel();
-        frame2.setContentPane(panel2);
+        webcamImageFrame = new JFrame("Camera");
+        webcamImageFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        webcamImageFrame.setSize(640, 480);
+        webcamImageFrame.setBounds(0, 0, webcamImageFrame.getWidth(), webcamImageFrame.getHeight());
+        webcamImagePanel = new CvPanel();
+        webcamImageFrame.setContentPane(webcamImagePanel);
+        ballFrame = new JFrame("Ball Threshold");
+        ballFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        ballFrame.setSize(640, 480);
+        ballFrame.setBounds(0, 0, ballFrame.getWidth(), ballFrame.getHeight());
+        ballPanel = new CvPanel();
+        ballFrame.setContentPane(ballPanel);
+        robotFrame = new JFrame("Robot Threshold");
+        robotFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        robotFrame.setSize(640, 480);
+        robotFrame.setBounds(0, 0, robotFrame.getWidth(), robotFrame.getHeight());
+        robotPanel = new CvPanel();
+        robotFrame.setContentPane(robotPanel);
 
         worker.execute();
 
         worker.registerCameraEventHandler(new CameraEventHandler() {
 
             @Override
-            public void handleLatestCameraResult(PublishObject obj) {
-                if (!frame1.isVisible()) {
-                    frame1.setVisible(true);
-                    frame1.setSize(obj.webcamImage.width() + 40, obj.webcamImage.height() + 60);
+            public void handleLatestCameraResult(PublishObject obj1) {
+
+                if (!webcamImageFrame.isVisible()) {
+                    webcamImageFrame.setVisible(true);
+                    webcamImageFrame.setSize(obj1.webcamImage.width() + 40, obj1.webcamImage.height() + 60);
                 }
-                if (!frame2.isVisible()) {
-                    frame2.setVisible(true);
-                    frame2.setSize(obj.thresholdImage.width() + 40, obj.thresholdImage.height() + 60);
+                webcamImagePanel.setimagewithMat(obj1.webcamImage);
+                webcamImageFrame.repaint();
+
+                FilteredObject ballFilteredObject = obj1.getObject(FilterType.BALL);
+                if (!ballFrame.isVisible()) {
+                    ballFrame.setVisible(true);
+                    ballFrame.setSize(ballFilteredObject.thresholdImage.width() + 40, ballFilteredObject.thresholdImage.height() + 60);
                 }
-                panel1.setimagewithMat(obj.webcamImage);
-                frame1.repaint();
-                panel2.setimagewithMat(obj.thresholdImage);
-                frame2.repaint();
+                ballPanel.setimagewithMat(ballFilteredObject.thresholdImage);
+                ballFrame.repaint();
+
+                FilteredObject robotFilteredObject = obj1.getObject(FilterType.ROBOT);
+                if (!robotFrame.isVisible()) {
+                    robotFrame.setVisible(true);
+                    robotFrame.setSize(robotFilteredObject.thresholdImage.width() + 40, robotFilteredObject.thresholdImage.height() + 60);
+                }
+                robotPanel.setimagewithMat(robotFilteredObject.thresholdImage);
+                robotFrame.repaint();
+
+                if (pb.isInitialized()) {
+                    pb.updateBot(obj1);
+                }
 
             }
         });
-        
+
     }//GEN-LAST:event_jButton1ActionPerformed
-
-    private void objectSizeSpinnerStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_objectSizeSpinnerStateChanged
-        worker.setObjectSize((Integer) objectSizeSpinner.getValue());
-    }//GEN-LAST:event_objectSizeSpinnerStateChanged
-
-    private void erodeSizeSpinnerStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_erodeSizeSpinnerStateChanged
-        if ((Integer) erodeSizeSpinner.getValue() <= 0) {
-            erodeSizeSpinner.setValue(1);
-        }
-        worker.setErodeSize((Integer) erodeSizeSpinner.getValue());
-    }//GEN-LAST:event_erodeSizeSpinnerStateChanged
-
-    private void dilateSizeSpinnerStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_dilateSizeSpinnerStateChanged
-        if ((Integer) dilateSizeSpinner.getValue() <= 0) {
-            dilateSizeSpinner.setValue(1);
-        }
-        worker.setDilateSize((Integer) dilateSizeSpinner.getValue());
-    }//GEN-LAST:event_dilateSizeSpinnerStateChanged
 
     /**
      * @param args the command line arguments
@@ -504,166 +294,25 @@ public class App extends javax.swing.JFrame implements KeyListener {
         });
     }
 
-    private void updateFilter() {
-        this.worker.updateFilter(hueMinSlider.getValue(), hueMaxSlider.getValue(),
-                saturationMinSlider.getValue(), saturationMaxSlider.getValue(),
-                valueMinSlider.getValue(), valueMaxSlider.getValue());
-    }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton connectButton;
     private java.awt.TextField dataField;
-    private javax.swing.JSpinner dilateSizeSpinner;
-    private javax.swing.JSpinner erodeSizeSpinner;
-    private javax.swing.JLabel hueMaxLabel;
-    private javax.swing.JSlider hueMaxSlider;
-    private javax.swing.JLabel hueMinLabel;
-    private javax.swing.JSlider hueMinSlider;
     private javax.swing.JButton jButton1;
-    private javax.swing.JLabel jLabel1;
-    private javax.swing.JLabel jLabel2;
-    private javax.swing.JLabel jLabel3;
-    private javax.swing.JLabel jLabel4;
-    private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel5;
     private javax.swing.JPanel jPanel6;
     private javax.swing.JPanel jPanel7;
     private javax.swing.JPanel jPanel8;
-    private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JSpinner jSpinner2;
     private javax.swing.JSpinner jSpinner3;
     private javax.swing.JSplitPane jSplitPane1;
-    private javax.swing.JSpinner maxObjectSpinner;
-    private javax.swing.JSpinner objectSizeSpinner;
-    private javax.swing.JLabel saturationMaxLabel;
-    private javax.swing.JSlider saturationMaxSlider;
-    private javax.swing.JLabel saturationMinLabel;
-    private javax.swing.JSlider saturationMinSlider;
+    private javax.swing.JSplitPane jSplitPane2;
+    private javax.swing.JScrollPane scrollPane;
     private javax.swing.JButton sendButton;
     private javax.swing.JTextArea serialLog;
-    private javax.swing.JLabel valueMaxLabel;
-    private javax.swing.JSlider valueMaxSlider;
-    private javax.swing.JLabel valueMinLabel;
-    private javax.swing.JSlider valueMinSlider;
     // End of variables declaration//GEN-END:variables
-    @Override
-    public void keyTyped(KeyEvent e) {
-    }
-
-    @Override
-    public void keyPressed(KeyEvent e) {
-        switch (e.getKeyCode()) {
-            case KeyEvent.VK_NUMPAD1:
-                turret.sendData("1".getBytes());
-                break;
-            case KeyEvent.VK_NUMPAD2:
-                turret.sendData("2".getBytes());
-                break;
-            case KeyEvent.VK_NUMPAD3:
-                turret.sendData("3".getBytes());
-                break;
-            case KeyEvent.VK_NUMPAD4:
-                turret.sendData("4".getBytes());
-                break;
-            case KeyEvent.VK_NUMPAD5:
-                turret.sendData("5".getBytes());
-                break;
-            case KeyEvent.VK_NUMPAD6:
-                turret.sendData("6".getBytes());
-                break;
-            case KeyEvent.VK_NUMPAD7:
-                turret.sendData("7".getBytes());
-                break;
-            case KeyEvent.VK_NUMPAD8:
-                turret.sendData("8".getBytes());
-                break;
-            case KeyEvent.VK_NUMPAD9:
-                turret.sendData("9".getBytes());
-                break;
-        }
-    }
-
-    @Override
-    public void keyReleased(KeyEvent e) {
-        Command command = Command.fromKey(e.getKeyCode());
-        if (command != null) {
-            this.inputState &= ~command.commandBit;
-//            turret.sendTurretCommand(inputState);
-
-        }
-    }
-
     TimerTask timerTask;
+
 }
 
-class Panel extends JPanel {
-
-    private static final long serialVersionUID = 1L;
-    private BufferedImage image;
-
-    // Create a constructor method  
-    public Panel() {
-        super();
-    }
-
-    private BufferedImage getimage() {
-        return image;
-    }
-
-    public void setimage(BufferedImage newimage) {
-        image = newimage;
-        return;
-    }
-
-    public void setimagewithMat(Mat newimage) {
-        image = this.matToBufferedImage(newimage);
-        return;
-    }
-
-    /**
-     * Converts/writes a Mat into a BufferedImage.
-     *
-     * @param matrix Mat of type CV_8UC3 or CV_8UC1
-     * @return BufferedImage of type TYPE_3BYTE_BGR or TYPE_BYTE_GRAY
-     */
-    public BufferedImage matToBufferedImage(Mat matrix) {
-        int cols = matrix.cols();
-        int rows = matrix.rows();
-        int elemSize = (int) matrix.elemSize();
-        byte[] data = new byte[cols * rows * elemSize];
-        int type;
-        matrix.get(0, 0, data);
-        switch (matrix.channels()) {
-            case 1:
-                type = BufferedImage.TYPE_BYTE_GRAY;
-                break;
-            case 3:
-                type = BufferedImage.TYPE_3BYTE_BGR;
-                // bgr to rgb  
-                byte b;
-                for (int i = 0; i < data.length; i = i + 3) {
-                    b = data[i];
-                    data[i] = data[i + 2];
-                    data[i + 2] = b;
-                }
-                break;
-            default:
-                return null;
-        }
-        BufferedImage image2 = new BufferedImage(cols, rows, type);
-        image2.getRaster().setDataElements(0, 0, cols, rows, data);
-        return image2;
-    }
-
-    @Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        //BufferedImage temp=new BufferedImage(640, 480, BufferedImage.TYPE_3BYTE_BGR);  
-        BufferedImage temp = getimage();
-        //Graphics2D g2 = (Graphics2D)g;
-        if (temp != null) {
-            g.drawImage(temp, 10, 10, temp.getWidth(), temp.getHeight(), this);
-        }
-    }
-}

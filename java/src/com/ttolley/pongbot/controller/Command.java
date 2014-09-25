@@ -1,32 +1,46 @@
 package com.ttolley.pongbot.controller;
 
-import com.sun.glass.events.KeyEvent;
+public class Command {
 
-public enum Command {
+    public static enum RobotDirection {
 
-    UP(1, KeyEvent.VK_UP),
-    DOWN(2, KeyEvent.VK_DOWN),
-    LEFT(4, KeyEvent.VK_LEFT),
-    RIGHT(8, KeyEvent.VK_RIGHT),
-    FLYWHEEL_ON(16, KeyEvent.VK_R),
-    FLYWHEEL_OFF(32, KeyEvent.VK_E),
-    FIRE(64, KeyEvent.VK_F);
+        LEFT((byte) 0x10),
+        RIGHT((byte) 0x00);
+        public final byte bitmask;
 
-    public byte commandBit;
-    public final int key;
+        private RobotDirection(byte bitmask) {
+            this.bitmask = bitmask;
+        }
 
-    private Command(int bitMask, int key) {
-        this.commandBit = (byte) bitMask;
-        this.key = key;
     }
 
-    public static Command fromKey(int key) {
-        for (Command command : Command.values()) {
-            if (command.key == key) {
-                return command;
-            }
+    public static enum PaddleAction {
+
+        SWING((byte) 0x40),
+        WIND_UP_LEFT((byte) 0x20),
+        WIND_UP_RIGHT((byte) 0x00);
+        public final byte bitmask;
+
+        private PaddleAction(byte bitmask) {
+            this.bitmask = bitmask;
         }
-        return null;
+    }
+
+    public final RobotDirection direciton;
+    public final PaddleAction paddle;
+    public final double speedPercentage;
+
+    public Command(RobotDirection direciton, PaddleAction paddle, double speedPercentage) {
+        this.direciton = direciton;
+        this.paddle = paddle;
+        this.speedPercentage = speedPercentage;
+    }
+
+    public byte toByte() {
+        byte command = direciton.bitmask;
+        command += paddle.bitmask;
+        command += 16 * Math.abs(speedPercentage);
+        return command;
     }
 
 }

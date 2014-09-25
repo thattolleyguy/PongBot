@@ -96,7 +96,7 @@ public class SerialDevice implements SerialPortEventListener {
 
     public void sendData(byte[] data) {
         try {
-            System.out.println("Sending data: '" + data + "'");
+//            System.out.println("Sending data: '" + data + "'");
 
             // open the streams and send the "y" character
             output = serialPort.getOutputStream();

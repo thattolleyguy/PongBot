@@ -5,6 +5,9 @@
  */
 package com.ttolley.pongbot.opencv;
 
+import com.ttolley.pongbot.opencv.CvWorker.FilterType;
+import java.util.EnumMap;
+import java.util.Map;
 import org.opencv.core.Mat;
 
 /**
@@ -13,27 +16,18 @@ import org.opencv.core.Mat;
  */
 public class PublishObject {
 
-    public final Target t;
+    Map<FilterType, FilteredObject> objects = new EnumMap<>(FilterType.class);
     public final Mat webcamImage;
-    public final Mat thresholdImage;
 
-    public PublishObject(Target t, Mat webcamImage, Mat thresholdImage) {
-        this.t = t;
+    public PublishObject(Mat webcamImage) {
         this.webcamImage = webcamImage;
-        this.thresholdImage = thresholdImage;
     }
 
-    public static class Target {
+    public void addObject(FilterType filterType, FilteredObject object) {
+        objects.put(filterType, object);
+    }
 
-        public final double x;
-        public final double y;
-        public final double area;
-
-        public Target(double x, double y, double area) {
-            this.x = x;
-            this.y = y;
-            this.area = area;
-        }
-
+    public FilteredObject getObject(FilterType type) {
+        return objects.get(type);
     }
 }
